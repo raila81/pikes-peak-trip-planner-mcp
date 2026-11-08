@@ -1,0 +1,16 @@
+{
+  "name": "pikes-peak-trip-planner-mcp",
+  "version": "1.0.0",
+  "description": "Pikes Peak trip planning tools for AI assistants (MCP): day plan with the timed-entry permit rule, live road status and forecast, drive vs Cog Railway costs, Barr Trail and Manitou Incline hike times, facts.",
+  "mcpName": "info.pikespeak/pikes-peak-trip-planner",
+  "type": "module",
+  "bin": { "pikes-peak-trip-planner-mcp": "index.js" },
+  "files": ["index.js", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "keywords": ["mcp", "model-context-protocol", "pikes-peak", "colorado", "colorado-springs", "travel", "trip-planner", "hiking", "barr-trail", "manitou-incline", "cog-railway", "chatgpt", "claude"],
+  "homepage": "https://pikespeak.info/ai-assistants/",
+  "repository": { "type": "git", "url": "git+https://github.com/raila81/pikes-peak-trip-planner-mcp.git" },
+  "bugs": { "url": "https://github.com/raila81/pikes-peak-trip-planner-mcp/issues" },
+  "author": "Rainer Lang <hello@pikespeak.info>",
+  "license": "MIT"
+}

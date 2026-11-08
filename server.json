@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "info.pikespeak/pikes-peak-trip-planner",
+  "title": "Pikes Peak Trip Planner",
+  "description": "Plan a Pikes Peak day: timed-entry permit, gate hours, live road status, costs, hike times, facts.",
+  "websiteUrl": "https://pikespeak.info/ai-assistants/",
+  "version": "1.0.1",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://pikespeak.info/mcp?src=mcp"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "pikes-peak-trip-planner-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
