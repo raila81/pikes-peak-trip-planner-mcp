@@ -1,0 +1,562 @@
+{
+  "author": "Rainer Lang",
+  "cloudEndpoint": "https://pikespeak.info/mcp?src=mcp",
+  "description": "Plan a day on Pikes Peak, Colorado: timed-entry permit rule, gate hours, a timeline with the noon storm cutoff, live road status and forecast, drive vs shuttle vs Cog Railway costs, Barr Trail and Manitou Incline hike times, sourced facts.",
+  "homepage": "https://pikespeak.info/ai-assistants/",
+  "identifier": "pikes-peak-trip-planner",
+  "name": "Pikes Peak Trip Planner",
+  "prompts": [],
+  "resources": [],
+  "tags": [
+    "travel",
+    "hiking",
+    "colorado",
+    "pikes-peak",
+    "trip-planner"
+  ],
+  "tools": [
+    {
+      "name": "plan_pikes_peak_day",
+      "title": "Plan a Pikes Peak day",
+      "description": "Use this when someone plans a day on Pikes Peak (Colorado) and wants to know what applies to their date and way up: drive the Pikes Peak Highway (car), the Highway shuttle from mile 7, the Pikes Peak Cog Railway, or hiking the Barr Trail. Returns whether a timed-entry permit or reservation is needed on that date, Highway gate opening, last-entry and summit-closing times, closures (holidays, Hill Climb race day), a timeline from leaving the start point to being back with the noon thunderstorm cutoff in June to September, snow-season turnaround points, summit sunrise and sunset, what to book in which order (official ticket pages first), sold-out fallbacks (tours that include the ride up, with partner links) and a link that opens the plan in the pikespeak.info planner. Example questions: \"Do I need a reservation to drive Pikes Peak on July 4?\", \"Help me plan a Pikes Peak trip next Saturday by Cog Railway with kids\", \"What time should we leave Denver to drive up Pikes Peak in October?\". Not for live road status or group prices.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Date in Colorado: YYYY-MM-DD, \"today\" or \"tomorrow\" (default today)."
+          },
+          "way": {
+            "type": "string",
+            "enum": [
+              "car",
+              "shuttle",
+              "cog",
+              "hike"
+            ],
+            "description": "car = drive the Pikes Peak Highway yourself (default), shuttle = drive to the mile 7 lot and ride the Highway shuttle, cog = Pikes Peak Cog Railway from Manitou Springs, hike = Barr Trail on foot."
+          },
+          "start_time": {
+            "type": "string",
+            "description": "HH:MM, 24-hour: arrival at the Highway gate (car, shuttle), train departure (cog) or trailhead start (hike). Default: gate opening, 08:00 train, 03:30 trailhead."
+          },
+          "starting_point": {
+            "type": "string",
+            "enum": [
+              "manitou",
+              "cos",
+              "cos_airport",
+              "denver",
+              "den_airport",
+              "woodland"
+            ],
+            "description": "Optional start for driving times: manitou = Manitou Springs (town centre), cos = Downtown Colorado Springs, cos_airport = Colorado Springs Airport (COS), denver = Downtown Denver, den_airport = Denver International Airport (DEN), woodland = Woodland Park."
+          },
+          "with_kids": {
+            "type": "boolean",
+            "description": "Children in the group (adds family notes)."
+          },
+          "from_sea_level": {
+            "type": "boolean",
+            "description": "Coming from near sea level, not acclimatised (adds altitude advice and slows the hike)."
+          }
+        },
+        "required": [
+          "way"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "way": {
+            "type": "string"
+          },
+          "way_label": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "permit": {
+            "type": "string"
+          },
+          "closed": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verdicts": {
+            "type": "array"
+          },
+          "steps": {
+            "type": "array"
+          },
+          "book": {
+            "type": "array"
+          },
+          "notes": {
+            "type": "array"
+          },
+          "tours": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gate": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sun": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "planner_link": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "way",
+          "way_label",
+          "start",
+          "verdicts",
+          "steps",
+          "book",
+          "notes",
+          "planner_link",
+          "disclaimer"
+        ]
+      },
+      "annotations": {
+        "title": "Plan a Pikes Peak day",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "pikes_peak_conditions",
+      "title": "Is Pikes Peak open today?",
+      "description": "Use this when someone asks whether Pikes Peak or the Pikes Peak Highway is open today or right now, how far up the road is open (e.g. only to mile 13 Glen Cove after snow), today's gate hours, or the weather on Pikes Peak in the next days. Reads the City of Colorado Springs \"Open to\" status line from drivepikespeak.com (cached 15 minutes, with the time it was read) and the National Weather Service forecast for the summit-area grid. Example questions: \"Is Pikes Peak open today?\", \"Can I drive to the top of Pikes Peak right now?\", \"What is the weather on Pikes Peak this weekend?\". Not for the rules of a future date.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "forecast_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7,
+            "description": "Days of forecast to return, day and night periods (default 2)."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string"
+          },
+          "road": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "road_note": {
+            "type": "string"
+          },
+          "gate_hours_today": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closure_today": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "forecast": {
+            "type": "array"
+          },
+          "forecast_source": {
+            "type": "string"
+          },
+          "links": {
+            "type": "object"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "today",
+          "road",
+          "road_note",
+          "forecast",
+          "forecast_source",
+          "links",
+          "disclaimer"
+        ]
+      },
+      "annotations": {
+        "title": "Is Pikes Peak open today?",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "compare_pikes_peak_costs",
+      "title": "Pikes Peak cost: drive, shuttle or Cog",
+      "description": "Use this when someone asks what it costs for their group to go up Pikes Peak, or whether driving the Highway, the Highway shuttle or the Cog Railway is cheaper: Highway admission per person or per carload, timed-entry permits, shuttle fares and Cog Railway fares for adults, teens, children and under-6s across one or more vehicles on a date. Uses the official 2026 rate sheets and the railway's online fares. Example questions: \"How much is it for 2 adults and 3 kids to drive Pikes Peak?\", \"Is the Cog Railway or driving cheaper for a family of four?\", \"Pikes Peak Highway price for 7 people in 2 cars\". No tour or hotel prices.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Date in Colorado: YYYY-MM-DD, \"today\" or \"tomorrow\" (default today)."
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 40,
+            "description": "People 16 and older (default 2)."
+          },
+          "teens_13_15": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 40,
+            "description": "Aged 13 to 15 (child on the Highway, adult on the Cog)."
+          },
+          "kids_6_12": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 40,
+            "description": "Aged 6 to 12."
+          },
+          "under_6": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "description": "Aged 5 and under (free on the Highway)."
+          },
+          "vehicles": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Vehicles the group drives in (default 1)."
+          },
+          "seats_per_vehicle": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 15,
+            "description": "Seats per vehicle (default 5)."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "season": {
+            "type": "string"
+          },
+          "timed_entry_permit": {
+            "type": "boolean"
+          },
+          "group": {
+            "type": "object"
+          },
+          "fits": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array"
+          },
+          "cheapest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "saving_vs_next_usd": {
+            "type": "number"
+          },
+          "rates_used": {
+            "type": "object"
+          },
+          "assumptions": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "season",
+          "timed_entry_permit",
+          "group",
+          "fits",
+          "options",
+          "assumptions",
+          "link",
+          "disclaimer"
+        ]
+      },
+      "annotations": {
+        "title": "Pikes Peak cost: drive, shuttle or Cog",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "hike_time",
+      "title": "Barr Trail or Manitou Incline hike time",
+      "description": "Use this when someone asks how long it takes to hike Pikes Peak on the Barr Trail or to climb the Manitou Incline, what time to start to be off the summit by noon, or how the Incline reservation works. Barr Trail: hours up and down from the real trail profile by pace (strong, average, relaxed) and acclimatisation, Barr Camp and treeline times, summit time for a start time, latest start for a noon summit. Manitou Incline: time up and down, the published typical time, hours, the free reservation and when a date opens for booking. Example questions: \"How long does it take to hike Pikes Peak?\", \"What time should I start the Barr Trail to summit by noon?\", \"How long is the Manitou Incline and do I need a reservation?\".",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trail": {
+            "type": "string",
+            "enum": [
+              "barr_trail",
+              "manitou_incline"
+            ],
+            "description": "barr_trail (default) = Barr Trail to the summit; manitou_incline = the Incline steps in Manitou Springs."
+          },
+          "pace": {
+            "type": "string",
+            "enum": [
+              "strong",
+              "average",
+              "relaxed"
+            ],
+            "description": "Hiking pace: strong, average (default) or relaxed."
+          },
+          "from_sea_level": {
+            "type": "boolean",
+            "description": "Not acclimatised to altitude (15% slower above 10,000 ft on the Barr Trail, on the whole Incline)."
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Barr Trail: HH:MM trailhead start, 24-hour (optional)."
+          },
+          "date": {
+            "type": "string",
+            "description": "Optional hike date YYYY-MM-DD, \"today\" or \"tomorrow\"; for the Incline it sets the hours and the reservation release."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "trail": {
+            "type": "string"
+          },
+          "pace": {
+            "type": "string"
+          },
+          "up_hours": {
+            "type": "number"
+          },
+          "up_text": {
+            "type": "string"
+          },
+          "down_hours": {
+            "type": "number"
+          },
+          "down_text": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trail",
+          "pace",
+          "up_hours",
+          "up_text",
+          "down_hours",
+          "down_text",
+          "method",
+          "link",
+          "disclaimer"
+        ]
+      },
+      "annotations": {
+        "title": "Barr Trail or Manitou Incline hike time",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "pikes_peak_facts",
+      "title": "Pikes Peak facts",
+      "description": "Use this when someone asks a factual question about Pikes Peak, the Pikes Peak Highway, the Cog Railway, the Barr Trail, the Manitou Incline, Garden of the Gods, the Summit Visitor Center, the Pikes Peak International Hill Climb, the Pikes Peak Marathon and Ascent, or history: elevation, distances, fees, hours, rules, parking, records, opening dates. Returns matching facts with value, unit, source URL and the date the source was checked. Example questions: \"How tall is Pikes Peak?\", \"How many steps is the Manitou Incline?\", \"Is Garden of the Gods free?\", \"When is the Pikes Peak Hill Climb?\". Not for a date-specific plan.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Words to look for, e.g. \"summit elevation\", \"timed entry permit\", \"Incline steps\", \"Garden of the Gods parking\"."
+          },
+          "topic": {
+            "type": "string",
+            "enum": [
+              "highway",
+              "cog_railway",
+              "barr_trail",
+              "manitou_incline",
+              "garden_of_the_gods",
+              "summit",
+              "hill_climb",
+              "races",
+              "history"
+            ],
+            "description": "Optional topic filter."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "description": "Maximum facts (default 10)."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "count": {
+            "type": "number"
+          },
+          "facts": {
+            "type": "array"
+          },
+          "link": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "facts",
+          "link",
+          "disclaimer"
+        ]
+      },
+      "annotations": {
+        "title": "Pikes Peak facts",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "version": "1.0.0"
+}
