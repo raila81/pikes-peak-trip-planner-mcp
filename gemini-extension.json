@@ -1,0 +1,10 @@
+{
+  "name": "pikes-peak-trip-planner",
+  "version": "1.0.0",
+  "description": "Pikes Peak trip planning tools for AI assistants (MCP): day plan with the timed-entry permit rule, live road status and forecast, drive vs Cog Railway costs, Barr Trail and Manitou Incline hike times",
+  "mcpServers": {
+    "pikes-peak-trip-planner": {
+      "httpUrl": "https://pikespeak.info/mcp?src=mcp"
+    }
+  }
+}
